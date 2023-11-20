@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title><%= roomName %></title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <header> 
+      <div id="roomList">
+        <ul id="rooms">
+          <li><a href="/">
+            <% if (roomId == null) { %>
+              <strong>Main room</strong>
+            <% } else { %>
+              Main room
+            <% } %>
+          </a></li>
+          <h3>Private messages</h3>
+          <% if (chatRooms.length > 0){ %>
+            <% chatRooms.forEach(function(room) { %>
+              <li><a href="/chat/<%= room._id %>">
+                <% if (room._id == roomId) { %>
+                  <strong><%= room.name %></strong>
+                <% } else { %>
+                  <%= room.name %>
+                <% } %>
+              </a>
+            <% }); %>
+          <% } %>
+          <h3>My rooms</h3>
+          <% if (rooms.length > 0){ %>
+            <% rooms.forEach(function(room) { %>
+              <li><a href="/room/<%= room.id %>">
+                <% if (room.id == roomId) { %>
+                  <strong><%= room.name %></strong>
+                <% } else { %>
+                  <%= room.name %>
+                <% } %>
+              </a>
+              <% if (room.public) { %>
+                🔓
+              <% } else { %>
+                🔒
+              <% } %>
+              <a href="/room/<%= room.id %>">🗑️</a></li>
+            <% }); %>
+          <% } %>
+          <h3>Room joined</h3>
+          <% if (joinedRooms.length > 0){ %>
+            <% joinedRooms.forEach(function(room) { %>
+              <li><a href="/room/<%= room.id %>">
+                <% if (room.id == roomId) { %>
+                  <strong><%= room.name %></strong>
+                <% } else { %>
+                  <%= room.name %>
+                <% } %>
+              </a>
+            <% }); %>
+          <% } %>
+        </ul>
+      </div>
+      <div id="buttons">
+        <button id="searchUser">Search user</button>
+        <a href="/joinRoom" id="joinRoom">Join room</a>
+        <a href="/newRoom" id="makeRoom">Create room</a>
+        <a href="/logout" id="logOut">Log out</a>
+      </div>
+    </header>
+    <main>
+      <ul id="messages"></ul>
+      <form id="form" action="">
+        <textarea id="input" autocomplete="off" rows="1"></textarea><button>Send</button>
+      </form>
+    </main>
+    <div id="userSearch">
+      <input id="searchUserInput" type="text" placeholder="Search user">
+      <ul id="searchUserResults">
+        <li><span>Start typing to find a user</span></li>
+      </ul>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown@2.0.3/dist/showdown.min.js"></script>
+    <script src="/js/main.js"></script>
+  </body>
+</html>
