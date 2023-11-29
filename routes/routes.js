@@ -101,8 +101,13 @@ router.get('/room/:id', async (req, res) => {
             const users = room.users;
 
             if (!users.includes(user)) {
-                res.redirect('/');
-                return;
+                if (room.public) {
+                    room.users.push(user);
+                    await room.save();
+                } else {
+                    res.redirect('/');
+                    return;
+                }
             }
 
             const adminRooms = await Room.find({ admin: decodedToken._id });

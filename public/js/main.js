@@ -140,3 +140,57 @@ socket.on("search user", (users) => {
     document.querySelector("#searchUserResults").appendChild(userElement);
   });
 });
+
+socket.emit("search user", document.querySelector("#searchUserInput").value);
+
+/* Public room form */
+document.querySelector("#joinRoom").addEventListener("click", () => {
+  document.querySelector("#roomJoin").style.display = "flex";
+});
+
+/* Quand on appuie autour de la fenêtre de recherche, on la ferme */
+document.querySelector("#roomJoin").addEventListener("click", (e) => {
+  if (e.target === document.querySelector("#roomJoin")) {
+    document.querySelector("#roomJoin").style.display = "none";
+    document.querySelector("#joinRoomInput").value = "";
+  }
+});
+
+document.querySelector("#joinRoomInput").addEventListener("input", (e) => {
+  socket.emit("search room", e.target.value);
+}
+);
+
+socket.on("search room", (rooms) => {
+  console.log(rooms);
+  document.querySelector("#searchRoomResults").innerHTML = "";
+  if (rooms.length === 0) {
+    let userElement = document.createElement("li");
+    userElement.innerText = "No room found";
+    document.querySelector("#searchRoomResults").appendChild(userElement);
+    return;
+  }
+  rooms.forEach((room) => {
+    let userElement = document.createElement("li");
+    userElement.innerText = room.name;
+    let admin = document.createElement("span");
+    admin.innerText = room.admin;
+    admin.classList.add("adminInSearch");
+    chatButton = document.createElement("a");
+    if (room.isUserInRoom) {
+      chatButton.innerText = "💬";
+      chatButton.title = "Chat";
+    }
+    else {
+      chatButton.innerText = "✔️";
+      chatButton.title = "Join";
+    }
+    chatButton.classList.add("chatButton");
+    chatButton.href = `/room/${room._id}`;
+    userElement.appendChild(admin);
+    userElement.appendChild(chatButton);
+    document.querySelector("#searchRoomResults").appendChild(userElement);
+  });
+});
+
+socket.emit("search room", document.querySelector("#joinRoomInput").value);

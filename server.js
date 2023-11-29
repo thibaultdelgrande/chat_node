@@ -116,6 +116,20 @@ io.on("connection", (socket) => {
       });
   });
 
+  socket.on("search room", (text) => {
+    const userId = socket.user._id;
+    Room.find({name: {$regex: text, $options: "i"}, mp: false, public: true})
+      .then(async (result) => {
+        const rooms = await Promise.all(result.map(async (room) => {
+          const isUserInRoom = room.users.includes(userId);
+          const admin = await User.findOne({_id: room.admin});
+          const adminName = admin ? admin.username : "";
+          return { name: room.name, _id: room._id, isUserInRoom , admin: adminName };
+        }));
+        socket.emit("search room", rooms);
+      });
+  });
+
 
   socket.on("disconnect", () => {
     if (!socket.user) {

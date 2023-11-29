@@ -62,7 +62,7 @@
       </div>
       <div id="buttons">
         <button id="searchUser">Search user</button>
-        <a href="/joinRoom" id="joinRoom">Join room</a>
+        <button id="joinRoom">Join room</button>
         <a href="/newRoom" id="makeRoom">Create room</a>
         <a href="/logout" id="logOut">Log out</a>
       </div>
@@ -78,6 +78,13 @@
       <ul id="searchUserResults">
         <li><span>Start typing to find a user</span></li>
       </ul>
+    </div>
+    <div id="roomJoin">
+      <input id="joinRoomInput" type="text" placeholder="Search public room">
+      <ul id="searchRoomResults">
+        
+      </ul>
+      <a href="/rooms" id="allRooms">See all the rooms</a>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/showdown@2.0.3/dist/showdown.min.js"></script>
