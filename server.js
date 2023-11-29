@@ -60,20 +60,34 @@ io.on("connection", (socket) => {
       if (err) {
         console.log(err.message);
       } else {
+        console.log(second_user, decodedToken._id);
         socket.user = decodedToken;
         // Trouver la room correspondante
-        Room.find({ mp: true, users: { $in: [decodedToken._id, second_user] }}).then((rooms) => {
-          if (rooms.length == 0) {
-            console.log("room not found");
-            return;
-          }
-          let roomId = rooms[0]._id.toString();
-          console.log(socket.user.name + " connected in room " + roomId);
-          socket.emit("auth chat", roomId);
-        });
+        Room.findOne({ mp: true, users: { $all: [decodedToken._id, second_user], $size: 2 }})
+          .then((room) => {
+            if (!room) {
+              console.log("room not found");
+              // Create the room
+              Room.create({ mp: true, users: [decodedToken._id, second_user], name: `${decodedToken.name} - ${second_user}` })
+                .then((createdRoom) => {
+                  let roomId = createdRoom._id.toString();
+                  console.log(socket.user.name + " connected in room " + roomId);
+                  socket.emit("auth chat", roomId);
+                })
+                .catch((error) => {
+                  console.log(error.message);
+                });
+            } else {
+              let roomId = room._id.toString();
+              console.log(socket.user.name + " connected in room " + roomId);
+              socket.emit("auth chat", roomId);
+            }
+          })
+          .catch((error) => {
+            console.log(error.message);
+          });
       }
-    }
-    );
+    });
   });
 
 

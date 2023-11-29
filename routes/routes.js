@@ -10,36 +10,31 @@ const router = Router();
 router.use(cookieParser());
 
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     if (req.cookies.jwt) {
         /* Récupère la liste de room dont l'utilisateur est admin */
         const token = req.cookies.jwt;
         const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET);
         const admin = decodedToken._id;
-        Room.find({ admin: decodedToken._id }).then((adminRooms) => {
-            Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } }).then((chatRooms) => {
-                /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
-                chatRooms = chatRooms.map((room) => {
-                    let users = room.users;
-                    users = users.filter((user) => {
-                        return user != decodedToken._id.toString();
-                    });
-                    username = User.findById(users[0]).then((user) => {
-                        return user.username;
-                    });
-                    return { _id: users[0]._id.toString(), name: username };
-                });
-                Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } }).then((joinedRooms) => {
-                    res.render('../views/index.ejs', {
-                        roomId: null,
-                        rooms: adminRooms,
-                        roomName: "Main room",
-                        chatRooms: chatRooms,
-                        joinedRooms: joinedRooms,
-                    });
-                }
-            );
+        const adminRooms = await Room.find({ admin: decodedToken._id });
+        const chatRooms = await Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } });
+        /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
+        const updatedChatRooms = await Promise.all(chatRooms.map(async (room) => {
+            let users = room.users;
+            users = users.filter((user) => {
+                return user != decodedToken._id.toString();
             });
+            const user = await User.findById(users[0]);
+            const username = user.username;
+            return { _id: users[0]._id.toString(), name: username };
+        }));
+        const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+        res.render('../views/index.ejs', {
+            roomId: null,
+            rooms: adminRooms,
+            roomName: "Main room",
+            chatRooms: updatedChatRooms,
+            joinedRooms: joinedRooms,
         });
         return;
     }
@@ -85,9 +80,10 @@ router.post('/newRoom', (req, res) => {
     roomController.newRoom(req, res);
 });
 
-router.get('/room/:id', (req, res) => {
+router.get('/room/:id', async (req, res) => {
     if (req.cookies.jwt) {
-        Room.findById(req.params.id).then((room) => {
+        try {
+            const room = await Room.findById(req.params.id);
             if (!room) {
                 res.redirect('/');
                 return;
@@ -103,38 +99,39 @@ router.get('/room/:id', (req, res) => {
             const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET);
             const user = decodedToken._id;
             const users = room.users;
-            
+
             if (!users.includes(user)) {
                 res.redirect('/');
                 return;
             }
 
-            Room.find({ admin: decodedToken._id }).then((adminRooms) => {
-                Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } }).then((chatRooms) => {
-                    /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
-                    chatRooms = chatRooms.map((room) => {
-                        let users = room.users;
-                        users = users.filter((user) => {
-                            return user != decodedToken._id.toString();
-                        });
-                        username = User.findById(users[0]).then((user) => {
-                            return user.username;
-                        });
-                        return { _id: users[0]._id.toString(), name: username };
-                    });
-                    Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } }).then((joinedRooms) => {
-                        res.render('../views/index.ejs', {
-                            roomId: room._id.toString(),
-                            rooms: adminRooms,
-                            roomName: room.name,
-                            chatRooms: chatRooms,
-                            joinedRooms: joinedRooms,
-                        });
-                    }
-                );
+            const adminRooms = await Room.find({ admin: decodedToken._id });
+            const chatRooms = await Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } });
+
+            /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
+            const modifiedChatRooms = await Promise.all(chatRooms.map(async (room) => {
+                let users = room.users;
+                users = users.filter((user) => {
+                    return user != decodedToken._id.toString();
                 });
+                const userObj = await User.findById(users[0]);
+                const username = userObj.username;
+                return { _id: users[0]._id.toString(), name: username };
+            }));
+
+            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+
+            res.render('../views/index.ejs', {
+                roomId: room._id.toString(),
+                rooms: adminRooms,
+                roomName: room.name,
+                chatRooms: modifiedChatRooms,
+                joinedRooms: joinedRooms,
             });
-        });
+        } catch (error) {
+            console.error(error);
+            res.redirect('/');
+        }
         return;
     }
     res.redirect('/login');
@@ -142,7 +139,7 @@ router.get('/room/:id', (req, res) => {
 
 
 /* Chat routes */
-router.get("/chat/:id", (req, res) => {
+router.get("/chat/:id", async (req, res) => {
     if (req.cookies.jwt) {
         /* Décoder le token */
         const token = req.cookies.jwt;
@@ -153,47 +150,48 @@ router.get("/chat/:id", (req, res) => {
             return;
         }
 
-
-
-        /* Vérifie si l'utilisateur correspondant à l'id existe */
-        User.findById(req.params.id).then((user) => {
+        try {
+            /* Vérifie si l'utilisateur correspondant à l'id existe */
+            const user = await User.findById(req.params.id);
             if (!user) {
                 res.redirect('/');
                 return;
             }
-            Room.find({ mp: true, users: { $in: [decodedToken._id, user._id.toString()] }}).then((rooms) => {
-                if (rooms.length == 0) {
-                    roomController.newRoom(req, res, true, user);
-                    return;
-                }
-                let roomId = rooms[0]._id.toString();
-                Room.find({ admin: decodedToken._id }).then((adminRooms) => {
-                    Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } }).then((chatRooms) => {
-                        /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
-                        chatRooms = chatRooms.map((room) => {
-                            let users = room.users;
-                            users = users.filter((user) => {
-                                return user != decodedToken._id.toString();
-                            });
-                            username = User.findById(users[0]).then((user) => {
-                                return user.username;
-                            });
-                            return { _id: users[0]._id.toString(), name: username };
-                        });
-                        Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } }).then((joinedRooms) => {
-                            res.render('../views/index.ejs', {
-                                roomId: roomId,
-                                rooms: adminRooms,
-                                roomName: user.username,
-                                chatRooms: chatRooms,
-                                joinedRooms: joinedRooms,
-                            });
-                        }
-                    );
-                    });
+
+            const rooms = await Room.find({ mp: true, users: { $in: [decodedToken._id, user._id.toString()] }});
+            if (rooms.length == 0) {
+                await roomController.newRoom(req, res, true, user);
+                return;
+            }
+
+            let roomId = rooms[0]._id.toString();
+            const adminRooms = await Room.find({ admin: decodedToken._id });
+            const chatRooms = await Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } });
+
+            /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
+            const modifiedChatRooms = await Promise.all(chatRooms.map(async (room) => {
+                let users = room.users;
+                users = users.filter((user) => {
+                    return user != decodedToken._id.toString();
                 });
+                const user = await User.findById(users[0]);
+                const username = user.username;
+                return { _id: users[0]._id.toString(), name: username };
+            }));
+
+            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+
+            res.render('../views/index.ejs', {
+                roomId: roomId,
+                rooms: adminRooms,
+                roomName: user.username,
+                chatRooms: modifiedChatRooms,
+                joinedRooms: joinedRooms,
             });
-        });
+        } catch (error) {
+            console.error(error);
+            res.redirect('/login');
+        }
         return;
     }
     res.redirect('/login');

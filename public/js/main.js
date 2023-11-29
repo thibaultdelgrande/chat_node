@@ -27,7 +27,7 @@ input.addEventListener('keydown', e => {
 });
 
 
-// R2cupérer le token dans les cookies
+// Récupérer le token dans les cookies
 const token = document.cookie.split("=")[1];
 // Récupérer la room dans l'url
 let room;
