@@ -60,7 +60,6 @@ io.on("connection", (socket) => {
       if (err) {
         console.log(err.message);
       } else {
-        console.log(second_user, decodedToken._id);
         socket.user = decodedToken;
         // Trouver la room correspondante
         Room.findOne({ mp: true, users: { $all: [decodedToken._id, second_user], $size: 2 }})

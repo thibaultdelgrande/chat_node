@@ -15,7 +15,6 @@ router.get('/', async (req, res) => {
         /* Récupère la liste de room dont l'utilisateur est admin */
         const token = req.cookies.jwt;
         const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET);
-        const admin = decodedToken._id;
         const adminRooms = await Room.find({ admin: decodedToken._id });
         const chatRooms = await Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } });
         /* Changer chatRooms pour qu'il ne contienne que l'id de l'autre utilisateur ainsi que son nom */
@@ -28,7 +27,7 @@ router.get('/', async (req, res) => {
             const username = user.username;
             return { _id: users[0]._id.toString(), name: username };
         }));
-        const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+        const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] }, admin: { $ne: decodedToken._id } });
         res.render('../views/index.ejs', {
             roomId: null,
             rooms: adminRooms,
@@ -124,7 +123,7 @@ router.get('/room/:id', async (req, res) => {
                 return { _id: users[0]._id.toString(), name: username };
             }));
 
-            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] }, admin: { $ne: decodedToken._id } });
 
             res.render('../views/index.ejs', {
                 roomId: room._id.toString(),
@@ -169,7 +168,7 @@ router.get("/chat/:id", async (req, res) => {
                 return;
             }
 
-            let roomId = rooms[0]._id.toString();
+            let roomId = user._id.toString();
             const adminRooms = await Room.find({ admin: decodedToken._id });
             const chatRooms = await Room.find({ mp: true, users: { $in: [decodedToken._id.toString()] } });
 
@@ -184,8 +183,9 @@ router.get("/chat/:id", async (req, res) => {
                 return { _id: users[0]._id.toString(), name: username };
             }));
 
-            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] } });
+            const joinedRooms = await Room.find({ mp: false, users: { $in: [decodedToken._id.toString()] }, admin: { $ne: decodedToken._id } });
 
+            console.log(roomId, chatRooms)
             res.render('../views/index.ejs', {
                 roomId: roomId,
                 rooms: adminRooms,
@@ -197,6 +197,16 @@ router.get("/chat/:id", async (req, res) => {
             console.error(error);
             res.redirect('/login');
         }
+        return;
+    }
+    res.redirect('/login');
+});
+
+
+// "/rooms" affiche toute les rooms publiques
+router.get("/rooms", async (req, res) => {
+    if (req.cookies.jwt) {
+        res.render('../views/rooms.ejs');
         return;
     }
     res.redirect('/login');

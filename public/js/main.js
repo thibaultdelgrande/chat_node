@@ -1,5 +1,5 @@
 const socket = io();
-const converter = new showdown.Converter({'openLinksInNewWindow':true, 'simplifiedAutoLink':true,'strikethrough':true,'tables':true,'backslashEscapesHTMLTags':true,'emoji':true,'literalMidWordUnderscores':true,'requireSpaceBeforeHeadingText':true,'simpleLineBreaks':true});
+const converter = new showdown.Converter({ 'openLinksInNewWindow': true, 'simplifiedAutoLink': true, 'strikethrough': true, 'tables': true, 'backslashEscapesHTMLTags': true, 'emoji': true, 'literalMidWordUnderscores': true, 'requireSpaceBeforeHeadingText': true, 'simpleLineBreaks': true });
 
 converter.setFlavor('github');
 
@@ -32,18 +32,18 @@ const token = document.cookie.split("=")[1];
 // Récupérer la room dans l'url
 let room;
 if (window.location.pathname.split("/")[1] === "chat") {
-  socket.emit("auth chat",token, window.location.pathname.split("/")[2]);
+  socket.emit("auth chat", token, window.location.pathname.split("/")[2]);
 } else if (window.location.pathname.split("/")[1] === "room") {
   room = window.location.pathname.split("/")[2];
-  socket.emit("authentification",token, room);
+  socket.emit("authentification", token, room);
 } else {
   room = null;
-  socket.emit("authentification",token, room);
+  socket.emit("authentification", token, room);
 }
 
 socket.on("auth chat", (roomId) => {
   room = roomId;
-  socket.emit("authentification",token, room);
+  socket.emit("authentification", token, room);
 });
 
 function sendMessage() {
@@ -71,7 +71,7 @@ socket.on("chat message", (msg, username, date) => {
   let dateElement = document.createElement("span");
   dateElement.classList.add("date");
   dateElement.innerText = date;
-  
+
   message.append(messageText);
   message.append(dateElement);
   // Vérifier si le message précédent a été envoyé par le même utilisateur
@@ -162,7 +162,6 @@ document.querySelector("#joinRoomInput").addEventListener("input", (e) => {
 );
 
 socket.on("search room", (rooms) => {
-  console.log(rooms);
   document.querySelector("#searchRoomResults").innerHTML = "";
   if (rooms.length === 0) {
     let userElement = document.createElement("li");
